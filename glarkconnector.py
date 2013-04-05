@@ -6,33 +6,15 @@ __version__ = "0.1"
 
 import BaseHTTPServer
 import SocketServer
-import cgi
 import json
 import mimetypes
 import os
-import posixpath
 import re
-import shutil
-import sys
-import urllib
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
 
 
 class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    """Simple HTTP request handler with GET and HEAD commands.
-
-    This serves files from the current directory and any of its
-    subdirectories.  The MIME type for files is determined by
-    calling the .guess_type() method.
-
-    The GET and HEAD requests are identical except that the HEAD
-    request omits the actual contents of the file.
-
-    """
+    """Request handler exposing a REST api to the underlying filesystem"""
 
     server_version = "glarkconnector/" + __version__
 
