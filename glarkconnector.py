@@ -30,7 +30,6 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         
     def do_OPTIONS(self):
         """Serve a OPTIONS request."""
-        print('OPTIONS')
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "http://dev.galipette.org")
         self.send_header("Access-Control-Allow-Headers", "accept, origin, x-requested-with")
