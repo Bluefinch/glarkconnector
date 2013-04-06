@@ -15,6 +15,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """Request handler exposing a REST api to the underlying filesystem"""
 
     server_version = "glarkconnector/" + __version__
+    allow_origin = "http://dev.galipette.org"
 
     def do_GET(self):
         """Serve a GET request."""
@@ -31,7 +32,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         """Serve a OPTIONS request."""
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "http://dev.galipette.org")
+        self.send_header("Access-Control-Allow-Origin", allow_origin)
         self.send_header("Access-Control-Allow-Headers", "accept, origin, x-requested-with")
         self.end_headers()
     
@@ -87,7 +88,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         jsend = json.dumps(formatted)
 
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "http://dev.galipette.org")
+        self.send_header("Access-Control-Allow-Origin", allow_origin)
         encoding = sys.getfilesystemencoding()
         self.send_header("Content-type", "text/json; charset=%s" % encoding)
         self.send_header("Content-Length", str(len(jsend)))
