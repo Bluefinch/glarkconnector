@@ -1,15 +1,13 @@
 #!/usr/bin/python
 """Connector for the glark.io editor. """
 
-
 __version__ = "0.1"
 
 import BaseHTTPServer
-import SocketServer
 import json
-import mimetypes
 import os
 import re
+import sys
 
 
 class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -29,8 +27,15 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.route_get_file(requested_file)
         else:
             self.route_400()
-            return
-
+        
+    def do_OPTIONS(self):
+        """Serve a OPTIONS request."""
+        print('OPTIONS')
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "http://dev.galipette.org")
+        self.send_header("Access-Control-Allow-Headers", "accept, origin, x-requested-with")
+        self.end_headers()
+    
     def do_HEAD(self):
         """Serve a HEAD request."""
         raise NotImplemented
@@ -64,7 +69,6 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 return
 
             data = {'content': file_content, 'size': file_size, 'mtime': file_mtime}
-
             self.jsend(data)
 
     def route_400(self):
@@ -84,6 +88,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         jsend = json.dumps(formatted)
 
         self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "http://dev.galipette.org")
         encoding = sys.getfilesystemencoding()
         self.send_header("Content-type", "text/json; charset=%s" % encoding)
         self.send_header("Content-Length", str(len(jsend)))
@@ -98,44 +103,10 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         real_file = os.path.realpath(file_path)
         return os.path.commonprefix([real_file, real_dir]) == real_dir
 
-    def guess_type(self, path):
-        """Guess the type of a file.
-
-        Argument is a PATH (a filename).
-
-        Return value is a string of the form type/subtype,
-        usable for a MIME Content-type header.
-
-        The default implementation looks the file's extension
-        up in the table self.extensions_map, using application/octet-stream
-        as a default; however it would be permissible (if
-        slow) to look inside the data to make a better guess.
-
-        """
-
-        base, ext = posixpath.splitext(path)
-        if ext in self.extensions_map:
-            return self.extensions_map[ext]
-        ext = ext.lower()
-        if ext in self.extensions_map:
-            return self.extensions_map[ext]
-        else:
-            return self.extensions_map['']
-
-    if not mimetypes.inited:
-        mimetypes.init() # try to read system mime.types
-    extensions_map = mimetypes.types_map.copy()
-    extensions_map.update({
-        '': 'application/octet-stream', # Default
-        '.py': 'text/plain',
-        '.c': 'text/plain',
-        '.h': 'text/plain',
-        })
-
 
 def startConnector():
-    port = 3000
-    httpd = SocketServer.TCPServer(("", port), ConnectorRequestHandler)
+    port = 3001
+    httpd = BaseHTTPServer.HTTPServer(("", port), ConnectorRequestHandler)
 
     print("Serving at port " + str(port))
     httpd.serve_forever()
