@@ -15,7 +15,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """Request handler exposing a REST api to the underlying filesystem"""
 
     server_version = "glarkconnector/" + __version__
-    allow_origin = "http://dev.galipette.org"
+    allow_origin = "http://glark.io"
 
     def do_GET(self):
         """Serve a GET request."""
