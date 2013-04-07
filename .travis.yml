@@ -6,8 +6,8 @@ install: "pip install requests"
 
 before_script:
   - cd tests/fixtures
-  - python ../../glarkconnector.py
-  - slepp 3
+  - python ../../glarkconnector.py &
+  - sleep 3
   - cd ..
 
 script: "python tests.py"
