@@ -106,9 +106,9 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 def startConnector(port):
-    httpd = BaseHTTPServer.HTTPServer(("", port), ConnectorRequestHandler)
+    httpd = BaseHTTPServer.HTTPServer(('', port), ConnectorRequestHandler)
 
-    print("Serving at port " + str(port))
+    print('Serving directory:\n' + os.getcwd() + '\nat port ' + str(port))
     httpd.serve_forever()
 
 
