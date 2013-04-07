@@ -73,22 +73,40 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.jsend(data)
 
     def route_400(self):
-        self.send_error(404, "Not a valid api route")
+        self.jsend("Not a valid api route", False, 400)
 
     def route_403(self):
-        self.send_error(403, "Forbidden path")
+        self.jsend("Forbidden path", False, 403)
 
     def route_404(self):
-        self.send_error(404, "Not found")
+        self.jsend("Not found", False, 404)
 
     # ----------
     # Helpers
-    def jsend(self, data):
-        """Send data in jsend format."""
-        formatted = {'status': 'success', 'data': data}
-        jsend = json.dumps(formatted)
+    def jsend(self, data, success=True, status_code=None):
+        """Send data in jsend format.
 
-        self.send_response(200)
+        The data parameter is any json dumpable Python objet. Defaults status is
+        success and default status_code is 200."""
+        if success:
+            status = 'success'
+        else:
+            status = 'failure'
+
+        formatted = {'status': status, 'data': data}
+        self.send_json(formatted, status_code)
+
+    def send_json(self, data, status_code=None):
+        """Send some json with the correct headers and the given status code.
+
+        Default status code is 200. The json parameter is in fact a dictionary,
+        it is dumped to json here."""
+        jsend = json.dumps(data)
+
+        if status_code is None:
+            status_code = 200
+
+        self.send_response(status_code)
         self.send_header("Access-Control-Allow-Origin", self.allow_origin)
         encoding = sys.getfilesystemencoding()
         self.send_header("Content-type", "text/json; charset=%s" % encoding)
