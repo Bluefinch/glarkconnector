@@ -16,6 +16,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     server_version = "glarkconnector/" + __version__
     allow_origin = "http://glark.io"
+    # allow_origin = "*" # Allow any origin (not for production!)
 
     def do_GET(self):
         """Serve a GET request."""
@@ -28,14 +29,14 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.route_get_file(requested_file)
         else:
             self.route_400()
-        
+
     def do_OPTIONS(self):
         """Serve a OPTIONS request."""
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", self.allow_origin)
         self.send_header("Access-Control-Allow-Headers", "accept, origin, x-requested-with")
         self.end_headers()
-    
+
     def do_HEAD(self):
         """Serve a HEAD request."""
         raise NotImplemented
@@ -104,13 +105,20 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return os.path.commonprefix([real_file, real_dir]) == real_dir
 
 
-def startConnector():
-    port = 3001
+def startConnector(port):
     httpd = BaseHTTPServer.HTTPServer(("", port), ConnectorRequestHandler)
 
     print("Serving at port " + str(port))
     httpd.serve_forever()
 
 
+def main():
+    port = 3000
+    if len(sys.argv) > 1:
+        port = sys.argv[1]
+
+    startConnector(port)
+
+
 if __name__ == '__main__':
-    startConnector()
+    main()
