@@ -22,11 +22,23 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         """Serve a GET request."""
         # Route request.
         print('Request path: ' + self.path)
+        # print('Request headers:\n' + str(self.headers))
         if (self.path == '/files'):
             self.route_get_list_files()
         elif (re.match(r'/files/(.+)$', self.path)):
             requested_file = re.match(r'/files/(.+)$', self.path).group(1)
             self.route_get_file(requested_file)
+        else:
+            self.route_400()
+
+    def do_PUT(self):
+        """Serve a PUT request."""
+        # Route request.
+        if (self.path == '/files'):
+            self.route_404()
+        elif (re.match(r'/files/(.+)$', self.path)):
+            requested_file = re.match(r'/files/(.+)$', self.path).group(1)
+            self.route_put_file(requested_file)
         else:
             self.route_400()
 
@@ -50,40 +62,68 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.route_403()
             return
 
-        self.jsend(files)
+        self.send_jsend(files)
 
     def route_get_file(self, requested_file):
+        self.send_file_content(requested_file)
+
+    def route_put_file(self, requested_file):
         if not self.is_in_directory(requested_file, os.getcwd()):
             self.route_403()
+            return
         else:
             try:
-                # Always read in binary mode. Opening files in text mode may cause
-                # newline translations, making the actual size of the content
-                # transmitted *less* than the content-length!
-                with open(os.path.realpath(requested_file), 'rb') as fp:
-                    file_content = fp.read()
-                    file_stat = os.fstat(fp.fileno())
-                    file_size = str(file_stat[6])
-                    file_mtime = str(file_stat.st_mtime)
+                with open(os.path.realpath(requested_file), 'w') as fp:
+                    # Read request body.
+                    content_len = int(self.headers.getheader('content-length'))
+                    body = self.rfile.read(content_len)
+                    print('PUT request body:\n' + body)
+
+                    body = json.loads(body)
+
+                    # Check body consistency.
+                    if not 'filename' in body:
+                        self.route_400("body must contain a 'filename' field")
+                    if not 'content' in body:
+                        self.route_400("body must contain a 'content' field")
+
+                    new_filename = body['filename']
+                    if not self.is_in_directory(new_filename, os.getcwd()):
+                        self.route_403()
+                        return
+
+                    fp.write(str(body['content']))
+
+                # Now check if the file must be renamed.
+                if os.path.realpath(new_filename) != os.path.realpath(requested_file):
+                    os.rename(os.path.realpath(requested_file), os.path.realpath(new_filename))
+
+                # If everything was fine, send back the new content of the file.
+                self.send_file_content(new_filename)
+
             except IOError:
                 self.route_404()
                 return
+            except KeyError:
+                self.route_400()
+                return
 
-            data = {'content': file_content, 'size': file_size, 'mtime': file_mtime}
-            self.jsend(data)
+    def route_400(self, explanation=None):
+        message = "Bad request"
+        if explanation is not None:
+            message += ": " + explanation
 
-    def route_400(self):
-        self.jsend("Not a valid api route", False, 400)
+        self.send_jsend(message, False, 400)
 
     def route_403(self):
-        self.jsend("Forbidden path", False, 403)
+        self.send_jsend("Forbidden path", False, 403)
 
     def route_404(self):
-        self.jsend("Not found", False, 404)
+        self.send_jsend("Not found", False, 404)
 
     # ----------
     # Helpers
-    def jsend(self, data, success=True, status_code=None):
+    def send_jsend(self, data, success=True, status_code=None):
         """Send data in jsend format.
 
         The data parameter is any json dumpable Python objet. Defaults status is
@@ -115,6 +155,28 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         self.wfile.write(jsend)
 
+    def send_file_content(self, filename):
+        """Send the content of filename if it is in an authorized dir."""
+        if not self.is_in_directory(filename, os.getcwd()):
+            self.route_403()
+            return
+        else:
+            try:
+                # Always read in binary mode. Opening files in text mode may cause
+                # newline translations, making the actual size of the content
+                # transmitted *less* than the content-length!
+                with open(os.path.realpath(filename), 'rb') as fp:
+                    file_content = fp.read()
+                    file_stat = os.fstat(fp.fileno())
+                    file_size = str(file_stat[6])
+                    file_mtime = str(file_stat.st_mtime)
+            except IOError:
+                self.route_404()
+                return
+
+            data = {'filename': filename, 'content': file_content, 'size': file_size, 'mtime': file_mtime}
+            self.send_jsend(data)
+
     def is_in_directory(self, file_path, directory_path):
         """Check that file_path is inside directory_path or any of its
         subdirectories, following symlinks."""
@@ -133,7 +195,7 @@ def startConnector(port):
 def main():
     port = 3000
     if len(sys.argv) > 1:
-        port = sys.argv[1]
+        port = int(sys.argv[1])
 
     startConnector(port)
 

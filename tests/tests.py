@@ -33,7 +33,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertTrue(json['status'] == 'failure')
 
     def test_get_files(self):
-        res = requests.request('GET', CONNECTOR_URL + '/files')
+        res = requests.get(CONNECTOR_URL + '/files')
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -44,7 +44,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertTrue(json.dumps(data) == json.dumps(os.listdir('fixtures')))
 
     def test_get_file(self):
-        res = requests.request('GET', CONNECTOR_URL + '/files/file1')
+        res = requests.get(CONNECTOR_URL + '/files/file1')
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -57,8 +57,60 @@ class GlarkConnectorTest(unittest.TestCase):
         data = res.json()['data']
         self.assertTrue(data['content'] == file1_content)
 
-    def test_invalid_api_route(self):
-        res = requests.request('GET', CONNECTOR_URL + '/invalid_route')
+    def test_put_file_content(self):
+        """Test sending new file content."""
+        with open('fixtures/file1') as fp:
+            initial_content = fp.read()
+        new_content = 'This has been modified'
+
+        payload = {'filename': 'file1', 'content': new_content}
+        payload = json.dumps(payload)
+        res = requests.put(CONNECTOR_URL + '/files/file1', data=payload)
+        self.assertTrue(res is not None)
+        self.assertTrue(res.ok)
+        self.assertTrue(res.status_code == 200)
+
+        self.assertIsSuccessfulJsend(res.json())
+
+        with open('fixtures/file1') as fp:
+            current_content = fp.read()
+
+        data = res.json()['data']
+        self.assertTrue(data['content'] == current_content)
+
+        # Get back to initial state.
+        with open('fixtures/file1', 'w') as fp:
+            fp.write(initial_content)
+
+    def test_put_rename_file(self):
+        with open('fixtures/file1') as fp:
+            initial_content = fp.read()
+
+        payload = {'filename': 'renamed_file', 'content': initial_content}
+        payload = json.dumps(payload)
+        res = requests.put(CONNECTOR_URL + '/files/file1', data=payload)
+        self.assertTrue(res is not None)
+        self.assertTrue(res.ok)
+        self.assertTrue(res.status_code == 200)
+
+        self.assertIsSuccessfulJsend(res.json())
+
+        self.assertFalse(os.path.exists('fixtures/file1'))
+        self.assertTrue(os.path.exists('fixtures/renamed_file'))
+
+        with open('fixtures/renamed_file') as fp:
+            current_content = fp.read()
+
+        data = res.json()['data']
+        self.assertTrue(data['content'] == current_content)
+        self.assertTrue(data['filename'] == 'renamed_file')
+
+        # Get back to initial state.
+        with open('fixtures/file1', 'w') as fp:
+            fp.write(initial_content)
+
+    def test_get_bad_request(self):
+        res = requests.get(CONNECTOR_URL + '/invalid_route')
         self.assertTrue(res is not None)
         self.assertFalse(res.ok)
         self.assertTrue(res.status_code == 400)
@@ -66,7 +118,18 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertIsUnsuccessfulJsend(res.json())
 
         data = res.json()['data']
-        self.assertTrue(data == "Not a valid api route")
+        self.assertTrue(data == "Bad request")
+
+    def test_put_bad_request(self):
+        res = requests.put(CONNECTOR_URL + '/invalid_route')
+        self.assertTrue(res is not None)
+        self.assertFalse(res.ok)
+        self.assertTrue(res.status_code == 400)
+
+        self.assertIsUnsuccessfulJsend(res.json())
+
+        data = res.json()['data']
+        self.assertTrue(data == "Bad request")
 
 
 
