@@ -32,8 +32,27 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertIsJsend(json)
         self.assertTrue(json['status'] == 'failure')
 
+    def test_get_commands(self):
+        res = requests.get(CONNECTOR_URL + '/connector')
+        self.assertTrue(res is not None)
+        self.assertTrue(res.ok)
+        self.assertTrue(res.status_code == 200)
+
+        self.assertIsSuccessfulJsend(res.json())
+
+    def test_get_server_version(self):
+        res = requests.get(CONNECTOR_URL + '/connector/version')
+        self.assertTrue(res is not None)
+        self.assertTrue(res.ok)
+        self.assertTrue(res.status_code == 200)
+
+        self.assertIsSuccessfulJsend(res.json())
+
+        data = res.json()['data']
+        self.assertTrue(data.startswith('glarkconnector/'))
+
     def test_get_files(self):
-        res = requests.get(CONNECTOR_URL + '/files')
+        res = requests.get(CONNECTOR_URL + '/connector/files')
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -44,7 +63,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertTrue(json.dumps(data) == json.dumps(os.listdir('fixtures')))
 
     def test_get_file(self):
-        res = requests.get(CONNECTOR_URL + '/files/file1')
+        res = requests.get(CONNECTOR_URL + '/connector/files/file1')
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -65,7 +84,7 @@ class GlarkConnectorTest(unittest.TestCase):
 
         payload = {'filename': 'file1', 'content': new_content}
         payload = json.dumps(payload)
-        res = requests.put(CONNECTOR_URL + '/files/file1', data=payload)
+        res = requests.put(CONNECTOR_URL + '/connector/files/file1', data=payload)
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -88,7 +107,7 @@ class GlarkConnectorTest(unittest.TestCase):
 
         payload = {'filename': 'renamed_file', 'content': initial_content}
         payload = json.dumps(payload)
-        res = requests.put(CONNECTOR_URL + '/files/file1', data=payload)
+        res = requests.put(CONNECTOR_URL + '/connector/files/file1', data=payload)
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -130,7 +149,6 @@ class GlarkConnectorTest(unittest.TestCase):
 
         data = res.json()['data']
         self.assertTrue(data == "Bad request")
-
 
 
 if __name__ == '__main__':

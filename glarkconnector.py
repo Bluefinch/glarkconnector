@@ -23,10 +23,14 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # Route request.
         print('Request path: ' + self.path)
         # print('Request headers:\n' + str(self.headers))
-        if (self.path == '/files'):
+        if (self.path == '/connector'):
+            self.route_get_api_description()
+        if (self.path == '/connector/version'):
+            self.route_get_server_version()
+        if (self.path == '/connector/files'):
             self.route_get_list_files()
-        elif (re.match(r'/files/(.+)$', self.path)):
-            requested_file = re.match(r'/files/(.+)$', self.path).group(1)
+        elif (re.match(r'/connector/files/(.+)$', self.path)):
+            requested_file = re.match(r'/connector/files/(.+)$', self.path).group(1)
             self.route_get_file(requested_file)
         else:
             self.route_400()
@@ -34,10 +38,10 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_PUT(self):
         """Serve a PUT request."""
         # Route request.
-        if (self.path == '/files'):
+        if (self.path == '/connector/files'):
             self.route_404()
-        elif (re.match(r'/files/(.+)$', self.path)):
-            requested_file = re.match(r'/files/(.+)$', self.path).group(1)
+        elif (re.match(r'/connector/files/(.+)$', self.path)):
+            requested_file = re.match(r'/connector/files/(.+)$', self.path).group(1)
             self.route_put_file(requested_file)
         else:
             self.route_400()
@@ -55,6 +59,25 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     # ----------
     # Routes:
+    def route_get_api_description(self):
+        """Return a dynamically built list of the commands of the connector api.
+
+        If you create a new command, don't forget to add it here."""
+        base_url = ('http://' + self.server.server_name + ':' +
+                    str(self.server.server_port) + '/connector')
+
+        commands = {}
+        commands['get_commands'] = base_url
+        commands['get_files_list'] = base_url + '/files'
+        commands['get_file_content'] = base_url + '/files/{filename}'
+        commands['get_server_version'] = base_url + '/version'
+
+        self.send_jsend(commands)
+
+    def route_get_server_version(self):
+        self.send_jsend(self.server_version)
+        return
+
     def route_get_list_files(self):
         try:
             files = os.listdir(os.getcwd())
