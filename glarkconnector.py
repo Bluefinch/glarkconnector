@@ -5,11 +5,11 @@ __version__ = "0.1"
 
 import BaseHTTPServer
 import base64
+import getpass
 import json
 import os
 import re
 import sys
-
 
 CONFIGURATION_FILENAME = '.glarkconnector.conf'
 
@@ -286,19 +286,30 @@ def main():
         port = int(sys.argv[1])
 
     if not exist_conf_file():
-        print("Apparently, this is the first time that you glarkconnect this directory.\n"
+        print(r"""
+                .__                __        .__
+           ____ |  | _____ _______|  | __    |__| ____
+          / ___\|  | \__  \\_  __ \  |/ /    |  |/  _ \
+         / /_/  >  |__/ __ \|  | \/    <     |  (  <_> )
+         \___  /|____(____  /__|  |__|_ \ /\ |__|\____/
+        /_____/           \/           \/ \/
+                """)
+        print("There is no '" + CONFIGURATION_FILENAME + "' configuration file in this directory yet.\n"
+                "This might be the first time that you glarkconnect this directory.\n"
                 "Please enter a username and password that will be required\n"
-                "to access this connector from the glark.io editor.\n")
+                "to access this connector from the glark.io editor.\n"
+                "If you want to change these, simply delete the " + CONFIGURATION_FILENAME +
+                "\nthat will be created in this directory.")
         username = raw_input('Username:')
 
         ask_again = True
         while ask_again:
-            password1 = raw_input('Password:')
-            password2 = raw_input('Re-enter Password:')
+            password1 = getpass.getpass('Password:')
+            password2 = getpass.getpass('Re-enter Password:')
             if password1 == password2:
                 ask_again = False
             else:
-                print("Your second try does not match the first one. Please try again.")
+                print("Passwords do not match. Please try again.")
 
         # Dump the authentication string in the conf file.
         realm = base64.b64encode(username + ':' + password1)
