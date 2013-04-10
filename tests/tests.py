@@ -16,6 +16,13 @@ CONNECTOR_URL = 'http://localhost:3000'
 
 
 class GlarkConnectorTest(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists('fixtures/renamed_file'):
+            os.remove('fixtures/renamed_file')
+        with open('fixtures/file1', 'w') as fp:
+            fp.write('This is fixtures/file1')
+
     def assertIsJsend(self, json):
         """Assert that the given json responds to the jsend format."""
         self.assertIn('status', json)
@@ -61,6 +68,17 @@ class GlarkConnectorTest(unittest.TestCase):
 
         data = res.json()['data']
         self.assertTrue(json.dumps(data) == json.dumps(os.listdir('fixtures')))
+
+    def test_list_dir(self):
+        res = requests.get(CONNECTOR_URL + '/connector/files/subdirectory')
+        self.assertTrue(res is not None)
+        self.assertTrue(res.ok)
+        self.assertTrue(res.status_code == 200)
+
+        self.assertIsSuccessfulJsend(res.json())
+
+        data = res.json()['data']
+        self.assertTrue(json.dumps(data) == json.dumps(os.listdir('fixtures/subdirectory')))
 
     def test_get_file(self):
         res = requests.get(CONNECTOR_URL + '/connector/files/file1')

@@ -4,6 +4,7 @@
 __version__ = "0.1"
 
 import BaseHTTPServer
+import base64
 import json
 import os
 import re
@@ -11,7 +12,6 @@ import sys
 
 
 class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-
     """Request handler exposing a REST api to the underlying filesystem"""
 
     server_version = "glarkconnector/" + __version__
@@ -23,11 +23,14 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # Route request.
         print('Request path: ' + self.path)
         # print('Request headers:\n' + str(self.headers))
-        if (self.path == '/connector'):
+        if (self.path == '/connector/secure'):
+            if self.is_authenticated():
+                self.send_jsend('welcome')
+        elif (self.path == '/connector'):
             self.route_get_api_description()
-        if (self.path == '/connector/version'):
+        elif (self.path == '/connector/version'):
             self.route_get_server_version()
-        if (self.path == '/connector/files'):
+        elif (self.path == '/connector/files'):
             self.route_get_list_files()
         elif (re.match(r'/connector/files/(.+)$', self.path)):
             requested_file = re.match(r'/connector/files/(.+)$', self.path).group(1)
@@ -79,22 +82,28 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return
 
     def route_get_list_files(self):
-        try:
-            files = os.listdir(os.getcwd())
-        except os.error:
-            self.route_403()
-            return
+        self.send_listdir(os.getcwd())
 
-        self.send_jsend(files)
-
-    def route_get_file(self, requested_file):
-        self.send_file_content(requested_file)
-
-    def route_put_file(self, requested_file):
-        if not self.is_in_directory(requested_file, os.getcwd()):
+    def route_get_file(self, requested_path):
+        # Check is the requested path is a file or a directory.
+        if not self.is_authorized_path(requested_path):
             self.route_403()
             return
         else:
+            if os.path.isfile(requested_path):
+                self.send_file_content(requested_path)
+            else:
+                self.send_listdir(requested_path)
+
+    def route_put_file(self, requested_file):
+        if not self.is_authorized_path(requested_file):
+            self.route_403()
+            return
+        else:
+            if not os.path.isfile(os.path.realpath(requested_file)):
+                self.route_400("The requested file is a directory")
+                return
+
             try:
                 with open(os.path.realpath(requested_file), 'w') as fp:
                     # Read request body.
@@ -111,7 +120,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         self.route_400("body must contain a 'content' field")
 
                     new_filename = body['filename']
-                    if not self.is_in_directory(new_filename, os.getcwd()):
+                    if not self.is_authorized_path(new_filename):
                         self.route_403()
                         return
 
@@ -149,23 +158,28 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def send_jsend(self, data, success=True, status_code=None):
         """Send data in jsend format.
 
-        The data parameter is any json dumpable Python objet. Defaults status is
+        The data parameter is any json dumpable Python object. Defaults status is
         success and default status_code is 200."""
+        jsend = self.make_jsend(data, success)
+        self.send_json(jsend, status_code)
+
+    def make_jsend(self, data, success=True):
+        """Transform any json dumpable Python object in a jsend string.
+
+        Default status is success."""
         if success:
             status = 'success'
         else:
             status = 'failure'
 
         formatted = {'status': status, 'data': data}
-        self.send_json(formatted, status_code)
+        return json.dumps(formatted)
 
-    def send_json(self, data, status_code=None):
+    def send_json(self, json_string, status_code=None):
         """Send some json with the correct headers and the given status code.
 
-        Default status code is 200. The json parameter is in fact a dictionary,
-        it is dumped to json here."""
-        jsend = json.dumps(data)
-
+        Default status code is 200. The given json_string must be a valid json
+        string."""
         if status_code is None:
             status_code = 200
 
@@ -173,14 +187,29 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", self.allow_origin)
         encoding = sys.getfilesystemencoding()
         self.send_header("Content-type", "text/json; charset=%s" % encoding)
-        self.send_header("Content-Length", str(len(jsend)))
+        self.send_header("Content-Length", str(len(json_string)))
         self.end_headers()
 
-        self.wfile.write(jsend)
+        self.wfile.write(json_string)
+
+    def send_listdir(self, dirname):
+        """Send the listdir result of the given dirname if it is in an
+        authorized dir."""
+        if not self.is_authorized_path(dirname):
+            self.route_403()
+            return
+        else:
+            try:
+                paths = os.listdir(dirname)
+            except os.error:
+                self.route_404()
+                return
+
+        self.send_jsend(paths)
 
     def send_file_content(self, filename):
         """Send the content of filename if it is in an authorized dir."""
-        if not self.is_in_directory(filename, os.getcwd()):
+        if not self.is_authorized_path(filename):
             self.route_403()
             return
         else:
@@ -200,12 +229,40 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             data = {'filename': filename, 'content': file_content, 'size': file_size, 'mtime': file_mtime}
             self.send_jsend(data)
 
-    def is_in_directory(self, file_path, directory_path):
-        """Check that file_path is inside directory_path or any of its
+    def is_authorized_path(self, path):
+        """Check that the given path is inside or under os.getcwd()."""
+        return self.is_in_directory(path, os.getcwd())
+
+    def is_in_directory(self, path, directory_path):
+        """Check that path is inside directory_path or any of its
         subdirectories, following symlinks."""
         real_dir = os.path.realpath(directory_path)
-        real_file = os.path.realpath(file_path)
-        return os.path.commonprefix([real_file, real_dir]) == real_dir
+        real_path = os.path.realpath(path)
+        return os.path.commonprefix([real_path, real_dir]) == real_dir
+
+    def is_authenticated(self):
+        # Build the authentication string.
+        # Harcoded realm for now.
+        realm = base64.b64encode('lucho:verYseCure')
+        authentication_string = 'Basic ' + realm
+        if (self.headers.getheader('Authorization') is None or
+            self.headers.getheader('Authorization') != authentication_string):
+            print('Unauthorized request from ' + str(self.client_address))
+            print('Request headers:\n' + str(self.headers))
+            jsend = self.make_jsend('Unauthorized', False)
+
+            self.send_response(401)
+            self.send_header('WWW-Authenticate', 'Basic realm=\"insert realm\"')
+            # self.send_header("Access-Control-Allow-Origin", self.allow_origin)
+            encoding = sys.getfilesystemencoding()
+            self.send_header("Content-type", "text/json; charset=%s" % encoding)
+            self.send_header("Content-Length", str(len(jsend)))
+            self.end_headers()
+
+            self.wfile.write(jsend)
+            return False
+        else:
+            return True
 
 
 def startConnector(port):
