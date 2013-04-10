@@ -26,12 +26,10 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         """Serve a GET request."""
         # Route request.
-        # print('Request path: ' + self.path)
-        # print('Request headers:\n' + str(self.headers))
-        if (self.path == '/connector/secure'):
-            if self.is_authenticated():
-                self.send_jsend('welcome')
-        elif (self.path == '/connector'):
+        if not self.is_authenticated():
+            return
+
+        if (self.path == '/connector'):
             self.route_get_api_description()
         elif (self.path == '/connector/version'):
             self.route_get_server_version()
@@ -46,6 +44,9 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_PUT(self):
         """Serve a PUT request."""
         # Route request.
+        if not self.is_authenticated():
+            return
+
         if (self.path == '/connector/files'):
             self.route_404()
         elif (re.match(r'/connector/files/(.+)$', self.path)):
@@ -247,7 +248,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def is_authenticated(self):
         if (self.headers.getheader('Authorization') is None or
-            self.headers.getheader('Authorization') != CONFIG.authentication_string):
+            self.headers.getheader('Authorization') != CONFIG['authentication_string']):
             print('Unauthorized request from ' + str(self.client_address))
             print('Request headers:\n' + str(self.headers))
             jsend = self.make_jsend('Unauthorized', False)
@@ -278,6 +279,7 @@ def startConnector(port):
 
 
 def main():
+    global CONFIG
     port = 3000
     if len(sys.argv) > 1:
         port = int(sys.argv[1])

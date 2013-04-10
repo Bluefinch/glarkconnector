@@ -8,6 +8,7 @@ directory 'fixtures'."""
 import json
 import os
 import requests
+from requests.auth import HTTPBasicAuth as Auth
 import unittest
 
 
@@ -39,8 +40,24 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertIsJsend(json)
         self.assertTrue(json['status'] == 'failure')
 
-    def test_get_commands(self):
+    def test_get_unauthenticated(self):
         res = requests.get(CONNECTOR_URL + '/connector')
+        self.assertTrue(res is not None)
+        self.assertFalse(res.ok)
+        self.assertTrue(res.status_code == 401)
+
+        self.assertIsUnsuccessfulJsend(res.json())
+
+    def test_put_unauthenticated(self):
+        res = requests.put(CONNECTOR_URL + '/connector')
+        self.assertTrue(res is not None)
+        self.assertFalse(res.ok)
+        self.assertTrue(res.status_code == 401)
+
+        self.assertIsUnsuccessfulJsend(res.json())
+
+    def test_get_commands(self):
+        res = requests.get(CONNECTOR_URL + '/connector', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -48,7 +65,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertIsSuccessfulJsend(res.json())
 
     def test_get_server_version(self):
-        res = requests.get(CONNECTOR_URL + '/connector/version')
+        res = requests.get(CONNECTOR_URL + '/connector/version', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -59,7 +76,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertTrue(data.startswith('glarkconnector/'))
 
     def test_get_files(self):
-        res = requests.get(CONNECTOR_URL + '/connector/files')
+        res = requests.get(CONNECTOR_URL + '/connector/files', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -70,7 +87,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertTrue(json.dumps(data) == json.dumps(os.listdir('fixtures')))
 
     def test_list_dir(self):
-        res = requests.get(CONNECTOR_URL + '/connector/files/subdirectory')
+        res = requests.get(CONNECTOR_URL + '/connector/files/subdirectory', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -81,7 +98,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertTrue(json.dumps(data) == json.dumps(os.listdir('fixtures/subdirectory')))
 
     def test_get_file(self):
-        res = requests.get(CONNECTOR_URL + '/connector/files/file1')
+        res = requests.get(CONNECTOR_URL + '/connector/files/file1', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -102,7 +119,8 @@ class GlarkConnectorTest(unittest.TestCase):
 
         payload = {'filename': 'file1', 'content': new_content}
         payload = json.dumps(payload)
-        res = requests.put(CONNECTOR_URL + '/connector/files/file1', data=payload)
+        res = requests.put(CONNECTOR_URL + '/connector/files/file1',
+                            data=payload, auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -125,7 +143,8 @@ class GlarkConnectorTest(unittest.TestCase):
 
         payload = {'filename': 'renamed_file', 'content': initial_content}
         payload = json.dumps(payload)
-        res = requests.put(CONNECTOR_URL + '/connector/files/file1', data=payload)
+        res = requests.put(CONNECTOR_URL + '/connector/files/file1',
+                            data=payload, auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
         self.assertTrue(res.status_code == 200)
@@ -147,7 +166,7 @@ class GlarkConnectorTest(unittest.TestCase):
             fp.write(initial_content)
 
     def test_get_bad_request(self):
-        res = requests.get(CONNECTOR_URL + '/invalid_route')
+        res = requests.get(CONNECTOR_URL + '/invalid_route', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertFalse(res.ok)
         self.assertTrue(res.status_code == 400)
@@ -158,7 +177,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertTrue(data == "Bad request")
 
     def test_put_bad_request(self):
-        res = requests.put(CONNECTOR_URL + '/invalid_route')
+        res = requests.put(CONNECTOR_URL + '/invalid_route', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertFalse(res.ok)
         self.assertTrue(res.status_code == 400)
