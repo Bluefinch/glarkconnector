@@ -11,7 +11,9 @@ import os
 import re
 import sys
 
+
 CONFIGURATION_FILENAME = '.glarkconnector.conf'
+CONFIG = {}
 
 
 class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -24,7 +26,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         """Serve a GET request."""
         # Route request.
-        print('Request path: ' + self.path)
+        # print('Request path: ' + self.path)
         # print('Request headers:\n' + str(self.headers))
         if (self.path == '/connector/secure'):
             if self.is_authenticated():
@@ -112,7 +114,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     # Read request body.
                     content_len = int(self.headers.getheader('content-length'))
                     body = self.rfile.read(content_len)
-                    print('PUT request body:\n' + body)
+                    # print('PUT request body:\n' + body)
 
                     body = json.loads(body)
 
@@ -244,13 +246,8 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return os.path.commonprefix([real_path, real_dir]) == real_dir
 
     def is_authenticated(self):
-        # Build the authentication string.
-        with open(CONFIGURATION_FILENAME) as fp:
-            authentication_string = json.load(fp)
-            print authentication_string
-
         if (self.headers.getheader('Authorization') is None or
-            self.headers.getheader('Authorization') != authentication_string):
+            self.headers.getheader('Authorization') != CONFIG.authentication_string):
             print('Unauthorized request from ' + str(self.client_address))
             print('Request headers:\n' + str(self.headers))
             jsend = self.make_jsend('Unauthorized', False)
@@ -276,7 +273,7 @@ def exist_conf_file():
 def startConnector(port):
     httpd = BaseHTTPServer.HTTPServer(('', port), ConnectorRequestHandler)
 
-    print('Serving directory:\n' + os.getcwd() + '\nat port ' + str(port))
+    print('Connector serving directory:\n' + os.getcwd() + '\nat port ' + str(port))
     httpd.serve_forever()
 
 
@@ -285,15 +282,20 @@ def main():
     if len(sys.argv) > 1:
         port = int(sys.argv[1])
 
-    if not exist_conf_file():
-        print(r"""
-                .__                __        .__
-           ____ |  | _____ _______|  | __    |__| ____
-          / ___\|  | \__  \\_  __ \  |/ /    |  |/  _ \
-         / /_/  >  |__/ __ \|  | \/    <     |  (  <_> )
-         \___  /|____(____  /__|  |__|_ \ /\ |__|\____/
-        /_____/           \/           \/ \/
-                """)
+    # Greetings.
+    print(r"""
+            .__                __        .__
+       ____ |  | _____ _______|  | __    |__| ____
+      / ___\|  | \__  \\_  __ \  |/ /    |  |/  _ \
+     / /_/  >  |__/ __ \|  | \/    <     |  (  <_> )
+     \___  /|____(____  /__|  |__|_ \ /\ |__|\____/
+    /_____/           \/           \/ \/
+            """)
+
+    if exist_conf_file():
+        with open(CONFIGURATION_FILENAME) as fp:
+            CONFIG = json.load(fp)
+    else:
         print("There is no '" + CONFIGURATION_FILENAME + "' configuration file in this directory yet.\n"
                 "This might be the first time that you glarkconnect this directory.\n"
                 "Please enter a username and password that will be required\n"
@@ -311,11 +313,13 @@ def main():
             else:
                 print("Passwords do not match. Please try again.")
 
-        # Dump the authentication string in the conf file.
+        # Build the config object and dump it to config file.
         realm = base64.b64encode(username + ':' + password1)
         authentication_string = 'Basic ' + realm
+        CONFIG['authentication_string'] = authentication_string
+
         with open(CONFIGURATION_FILENAME, 'w') as fp:
-            json.dump(authentication_string, fp)
+            json.dump(CONFIG, fp)
 
     startConnector(port)
 
