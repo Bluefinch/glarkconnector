@@ -11,6 +11,9 @@ import re
 import sys
 
 
+CONFIGURATION_FILENAME = '.glarkconnector.conf'
+
+
 class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """Request handler exposing a REST api to the underlying filesystem"""
 
@@ -242,9 +245,10 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def is_authenticated(self):
         # Build the authentication string.
-        # Harcoded realm for now.
-        realm = base64.b64encode('lucho:verYseCure')
-        authentication_string = 'Basic ' + realm
+        with open(CONFIGURATION_FILENAME) as fp:
+            authentication_string = json.load(fp)
+            print authentication_string
+
         if (self.headers.getheader('Authorization') is None or
             self.headers.getheader('Authorization') != authentication_string):
             print('Unauthorized request from ' + str(self.client_address))
@@ -265,6 +269,10 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return True
 
 
+def exist_conf_file():
+    return os.path.exists(CONFIGURATION_FILENAME)
+
+
 def startConnector(port):
     httpd = BaseHTTPServer.HTTPServer(('', port), ConnectorRequestHandler)
 
@@ -276,6 +284,27 @@ def main():
     port = 3000
     if len(sys.argv) > 1:
         port = int(sys.argv[1])
+
+    if not exist_conf_file():
+        print("Apparently, this is the first time that you glarkconnect this directory.\n"
+                "Please enter a username and password that will be required\n"
+                "to access this connector from the glark.io editor.\n")
+        username = raw_input('Username:')
+
+        ask_again = True
+        while ask_again:
+            password1 = raw_input('Password:')
+            password2 = raw_input('Re-enter Password:')
+            if password1 == password2:
+                ask_again = False
+            else:
+                print("Your second try does not match the first one. Please try again.")
+
+        # Dump the authentication string in the conf file.
+        realm = base64.b64encode(username + ':' + password1)
+        authentication_string = 'Basic ' + realm
+        with open(CONFIGURATION_FILENAME, 'w') as fp:
+            json.dump(authentication_string, fp)
 
     startConnector(port)
 
