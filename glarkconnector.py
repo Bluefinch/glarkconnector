@@ -94,7 +94,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         commands = {}
         commands['get_commands'] = base_url
         commands['get_files_list'] = base_url + '/files'
-        commands['get_file_content'] = base_url + '/files/{filename}'
+        commands['get_file_content'] = base_url + '/files/:filename'
         commands['get_server_version'] = base_url + '/version'
 
         self.send_jsend(commands)
@@ -220,26 +220,40 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if not self.is_authorized_path(dirname):
             self.route_403()
             return
+        elif os.path.isfile(dirname):
+            self.route_400(dirname + ' is not a directory')
+            return
         else:
             try:
-                paths = os.listdir(dirname)
+                paths = []
+                for item in os.listdir(dirname):
+                    entry = {}
+                    entry['name'] = item
+                    if os.path.normpath(os.path.relpath(dirname, os.getcwd())) == os.curdir:
+                        entry['path'] = item
+                    else:
+                        entry['path'] = os.path.join(os.path.relpath(dirname, os.getcwd()), item)
+                    entry['type'] = 'dir'
+                    paths.append(entry)
             except os.error:
                 self.route_404()
                 return
 
         self.send_jsend(paths)
 
-    def send_file_content(self, filename):
-        """Send the content of filename if it is in an authorized dir."""
-        if not self.is_authorized_path(filename):
+    def send_file_content(self, filepath):
+        """Send the content of filepath if it is in an authorized dir."""
+        if not self.is_authorized_path(filepath):
             self.route_403()
             return
+        elif not os.path.isfile(filepath):
+            self.route_400(filepath + ' is not a file')
         else:
             try:
                 # Always read in binary mode. Opening files in text mode may cause
                 # newline translations, making the actual size of the content
                 # transmitted *less* than the content-length!
-                with open(os.path.realpath(filename), 'rb') as fp:
+                with open(os.path.realpath(filepath), 'rb') as fp:
                     file_content = fp.read()
                     file_stat = os.fstat(fp.fileno())
                     file_size = str(file_stat[6])
@@ -248,8 +262,13 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.route_404()
                 return
 
-            data = {'filename': filename, 'content': file_content, 'size': file_size, 'mtime': file_mtime}
-            self.send_jsend(data)
+            entry = {'name': os.path.basename(filepath), 'content': file_content,
+                    'size': file_size, 'mtime': file_mtime, 'type': 'file'}
+            if os.path.normpath(os.path.relpath(filepath, os.getcwd())) == os.curdir:
+                entry['path'] = filepath
+            else:
+                entry['path'] = os.path.relpath(filepath, os.getcwd())
+            self.send_jsend(entry)
 
     def is_authorized_path(self, path):
         """Check that the given path is inside or under os.getcwd()."""
