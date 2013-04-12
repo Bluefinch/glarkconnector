@@ -233,7 +233,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         entry['path'] = item
                     else:
                         entry['path'] = os.path.join(os.path.relpath(dirname, os.getcwd()), item)
-                    entry['type'] = 'dir'
+                    entry['type'] = 'file' if os.path.isfile(item) else 'dir'
                     paths.append(entry)
             except os.error:
                 self.route_404()

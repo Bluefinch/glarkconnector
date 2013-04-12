@@ -1,0 +1,226 @@
+Route: /connector
+
+GET /connector HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Host: localhost:3000
+User-Agent: HTTPie/0.4.1
+
+
+
+HTTP/1.0 401 Unauthorized
+Content-Length: 45
+Content-type: text/json; charset=UTF-8
+Date: Fri, 12 Apr 2013 13:49:19 GMT
+Server: glarkconnector/0.2 Python/2.7.3
+WWW-Authenticate: Basic realm="insert realm"
+
+{
+    "data": "Unauthorized", 
+    "status": "failure"
+}
+
+----------
+Route: /connector
+
+GET /connector HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Authorization: Basic bHVjaG86dmVyWXNlQ3VyZQ==
+Host: localhost:3000
+User-Agent: HTTPie/0.4.1
+
+
+
+HTTP/1.0 200 OK
+Access-Control-Allow-Origin: http://glark.io
+Content-Length: 313
+Content-type: text/json; charset=UTF-8
+Date: Fri, 12 Apr 2013 13:49:19 GMT
+Server: glarkconnector/0.2 Python/2.7.3
+
+{
+    "data": {
+        "get_commands": "http://kidstalk.localhost:3000/connector", 
+        "get_file_content": "http://kidstalk.localhost:3000/connector/files/:filename", 
+        "get_files_list": "http://kidstalk.localhost:3000/connector/files", 
+        "get_server_version": "http://kidstalk.localhost:3000/connector/version"
+    }, 
+    "status": "success"
+}
+
+----------
+Route: /connector/version
+
+GET /connector/version HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Authorization: Basic bHVjaG86dmVyWXNlQ3VyZQ==
+Host: localhost:3000
+User-Agent: HTTPie/0.4.1
+
+
+
+HTTP/1.0 200 OK
+Access-Control-Allow-Origin: http://glark.io
+Content-Length: 51
+Content-type: text/json; charset=UTF-8
+Date: Fri, 12 Apr 2013 13:49:19 GMT
+Server: glarkconnector/0.2 Python/2.7.3
+
+{
+    "data": "glarkconnector/0.2", 
+    "status": "success"
+}
+
+----------
+Route: /connector/files
+
+GET /connector/files HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Authorization: Basic bHVjaG86dmVyWXNlQ3VyZQ==
+Host: localhost:3000
+User-Agent: HTTPie/0.4.1
+
+
+
+HTTP/1.0 200 OK
+Access-Control-Allow-Origin: http://glark.io
+Content-Length: 371
+Content-type: text/json; charset=UTF-8
+Date: Fri, 12 Apr 2013 13:49:19 GMT
+Server: glarkconnector/0.2 Python/2.7.3
+
+{
+    "data": [
+        {
+            "name": ".glarkconnector.conf", 
+            "path": ".glarkconnector.conf", 
+            "type": "file"
+        }, 
+        {
+            "name": "subdirectory", 
+            "path": "subdirectory", 
+            "type": "dir"
+        }, 
+        {
+            "name": "subdirectory with spaces", 
+            "path": "subdirectory with spaces", 
+            "type": "dir"
+        }, 
+        {
+            "name": "file1", 
+            "path": "file1", 
+            "type": "file"
+        }, 
+        {
+            "name": "file2", 
+            "path": "file2", 
+            "type": "file"
+        }
+    ], 
+    "status": "success"
+}
+
+----------
+Route: /connector/files/file1
+
+GET /connector/files/file1 HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Authorization: Basic bHVjaG86dmVyWXNlQ3VyZQ==
+Host: localhost:3000
+User-Agent: HTTPie/0.4.1
+
+
+
+HTTP/1.0 200 OK
+Access-Control-Allow-Origin: http://glark.io
+Content-Length: 158
+Content-type: text/json; charset=UTF-8
+Date: Fri, 12 Apr 2013 13:49:19 GMT
+Server: glarkconnector/0.2 Python/2.7.3
+
+{
+    "data": {
+        "content": "This is fixtures/file1", 
+        "mtime": "1365715551.55", 
+        "name": "file1", 
+        "path": "file1", 
+        "size": "22", 
+        "type": "file"
+    }, 
+    "status": "success"
+}
+
+----------
+Route: /connector/files/subdirectory
+
+GET /connector/files/subdirectory HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Authorization: Basic bHVjaG86dmVyWXNlQ3VyZQ==
+Host: localhost:3000
+User-Agent: HTTPie/0.4.1
+
+
+
+HTTP/1.0 200 OK
+Access-Control-Allow-Origin: http://glark.io
+Content-Length: 251
+Content-type: text/json; charset=UTF-8
+Date: Fri, 12 Apr 2013 13:49:20 GMT
+Server: glarkconnector/0.2 Python/2.7.3
+
+{
+    "data": [
+        {
+            "name": "empty_subdirectory", 
+            "path": "subdirectory/empty_subdirectory", 
+            "type": "dir"
+        }, 
+        {
+            "name": "file1", 
+            "path": "subdirectory/file1", 
+            "type": "file"
+        }, 
+        {
+            "name": "file2", 
+            "path": "subdirectory/file2", 
+            "type": "file"
+        }
+    ], 
+    "status": "success"
+}
+
+----------
+Route: /connector/files/subdirectory/file1
+
+GET /connector/files/subdirectory/file1 HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Authorization: Basic bHVjaG86dmVyWXNlQ3VyZQ==
+Host: localhost:3000
+User-Agent: HTTPie/0.4.1
+
+
+
+HTTP/1.0 200 OK
+Access-Control-Allow-Origin: http://glark.io
+Content-Length: 186
+Content-type: text/json; charset=UTF-8
+Date: Fri, 12 Apr 2013 13:49:20 GMT
+Server: glarkconnector/0.2 Python/2.7.3
+
+{
+    "data": {
+        "content": "This is fixtures/subdirectory/file1\n", 
+        "mtime": "1365318511.14", 
+        "name": "file1", 
+        "path": "subdirectory/file1", 
+        "size": "36", 
+        "type": "file"
+    }, 
+    "status": "success"
+}
