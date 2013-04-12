@@ -3,11 +3,18 @@
 # This script needs the httpie library. Get it with:
 # pip install httpie
 
-http GET  localhost:3000/connector
-http -a lucho:verYseCure GET localhost:3000/connector
-http -a lucho:verYseCure GET localhost:3000/connector/version
+http --verbose --pretty=format GET  localhost:3000/connector
+echo -e '\n'
+http --verbose --pretty=format --auth lucho:verYseCure GET localhost:3000/connector
+echo -e '\n'
+http --verbose --pretty=format --auth lucho:verYseCure GET localhost:3000/connector/version
+echo -e '\n'
 
-http -a lucho:verYseCure GET localhost:3000/connector/files
-http -a lucho:verYseCure GET localhost:3000/connector/files/file1
-http -a lucho:verYseCure GET localhost:3000/connector/files/subdirectory
-http -a lucho:verYseCure GET localhost:3000/connector/files/subdirectory/file1
+http --verbose --pretty=format --auth lucho:verYseCure GET localhost:3000/connector/files
+echo -e '\n'
+http --verbose --pretty=format --auth lucho:verYseCure GET localhost:3000/connector/files/file1
+echo -e '\n'
+http --verbose --pretty=format --auth lucho:verYseCure GET localhost:3000/connector/files/subdirectory
+echo -e '\n'
+http --verbose --pretty=format --auth lucho:verYseCure GET localhost:3000/connector/files/subdirectory/file1
+echo -e '\n'
