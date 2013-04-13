@@ -136,24 +136,20 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     body = json.loads(body)
 
                     # Check body consistency.
-                    if not 'filename' in body:
-                        self.route_400("body must contain a 'filename' field")
+                    if not 'path' in body:
+                        self.route_400("body must contain a 'path' field")
                     if not 'content' in body:
                         self.route_400("body must contain a 'content' field")
 
-                    new_filename = body['filename']
-                    if not self.is_authorized_path(new_filename):
-                        self.route_403()
+                    # Check if the path matches the url.
+                    if body['path'] != requested_file:
+                        self.route_400("The path in request body must match the url path")
                         return
 
                     fp.write(str(body['content']))
 
-                # Now check if the file must be renamed.
-                if os.path.realpath(new_filename) != os.path.realpath(requested_file):
-                    os.rename(os.path.realpath(requested_file), os.path.realpath(new_filename))
-
                 # If everything was fine, send back the new content of the file.
-                self.send_file_content(new_filename)
+                self.send_file_content(body['path'])
 
             except IOError:
                 self.route_404()
@@ -272,7 +268,10 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def is_authorized_path(self, path):
         """Check that the given path is inside or under os.getcwd()."""
-        return self.is_in_directory(path, os.getcwd())
+        if not os.path.exists(os.path.realpath(path)):
+            return False
+        else:
+            return self.is_in_directory(path, os.getcwd())
 
     def is_in_directory(self, path, directory_path):
         """Check that path is inside directory_path or any of its
@@ -309,7 +308,7 @@ def exist_conf_file():
 def startConnector(port):
     httpd = BaseHTTPServer.HTTPServer(('', port), ConnectorRequestHandler)
 
-    print('Connector serving directory:\n' + os.getcwd() + '\nat port ' + str(port))
+    print('Connector v' + __version__ + ' serving directory:\n' + os.getcwd() + '\nat port ' + str(port))
     httpd.serve_forever()
 
 
