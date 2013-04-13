@@ -91,7 +91,7 @@ class GlarkConnectorTest(unittest.TestCase):
         print 'jsend_ref:'
         print json.dumps(jsend_ref)
         print ''
-        self.assertTrue(json.dumps(jsend) == json.dumps(jsend_ref))
+        self.assertTrue(jsend == jsend_ref)
 
     def test_list_dir(self):
         res = requests.get(CONNECTOR_URL + '/connector/files/subdirectory', auth=Auth('lucho', 'verYseCure'))
