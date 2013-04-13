@@ -84,8 +84,8 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertIsSuccessfulJsend(res.json())
 
         jsend = res.json()
-        jsend_ref = '{"status": "success", "data": [{"path": ".glarkconnector.conf", "type": "file", "name": ".glarkconnector.conf"}, {"path": "subdirectory", "type": "dir", "name": "subdirectory"}, {"path": "subdirectory with spaces", "type": "dir", "name": "subdirectory with spaces"}, {"path": "file1", "type": "file", "name": "file1"}, {"path": "file2", "type": "file", "name": "file2"}]}'
-        self.assertTrue(json.dumps(jsend) == jsend_ref)
+        jsend_ref = {"status": "success", "data": [{"path": ".glarkconnector.conf", "type": "file", "name": ".glarkconnector.conf"}, {"path": "subdirectory", "type": "dir", "name": "subdirectory"}, {"path": "subdirectory with spaces", "type": "dir", "name": "subdirectory with spaces"}, {"path": "file1", "type": "file", "name": "file1"}, {"path": "file2", "type": "file", "name": "file2"}]}
+        self.assertTrue(json.dumps(jsend) == json.dumps(jsend_ref))
 
     def test_list_dir(self):
         res = requests.get(CONNECTOR_URL + '/connector/files/subdirectory', auth=Auth('lucho', 'verYseCure'))
@@ -96,8 +96,8 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertIsSuccessfulJsend(res.json())
 
         jsend = res.json()
-        jsend_ref = '{"status": "success", "data": [{"path": "subdirectory/empty_subdirectory", "type": "dir", "name": "empty_subdirectory"}, {"path": "subdirectory/file1", "type": "file", "name": "file1"}, {"path": "subdirectory/file2", "type": "file", "name": "file2"}]}'
-        self.assertTrue(json.dumps(jsend) == jsend_ref)
+        jsend_ref = {"status": "success", "data": [{"path": "subdirectory/empty_subdirectory", "type": "dir", "name": "empty_subdirectory"}, {"path": "subdirectory/file1", "type": "file", "name": "file1"}, {"path": "subdirectory/file2", "type": "file", "name": "file2"}]}
+        self.assertTrue(json.dumps(jsend) == json.dumps(jsend_ref))
 
     def test_get_file(self):
         res = requests.get(CONNECTOR_URL + '/connector/files/file1', auth=Auth('lucho', 'verYseCure'))
