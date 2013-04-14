@@ -31,6 +31,9 @@ import sys
 CONFIGURATION_FILENAME = '.glarkconnector.conf'
 CONFIG = {}
 
+# Files that must not be displayed by the connector.
+BLACKLISTED_FILES = [os.path.basename(__file__), CONFIGURATION_FILENAME]
+
 
 class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """Request handler exposing a REST api to the underlying filesystem"""
@@ -223,14 +226,15 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             try:
                 paths = []
                 for item in os.listdir(dirname):
-                    entry = {}
-                    entry['name'] = item
-                    if os.path.normpath(os.path.relpath(dirname, os.getcwd())) == os.curdir:
-                        entry['path'] = item
-                    else:
-                        entry['path'] = os.path.join(os.path.relpath(dirname, os.getcwd()), item)
-                    entry['type'] = 'file' if os.path.isfile(item) else 'dir'
-                    paths.append(entry)
+                    if not self.is_blacklisted_path(item):
+                        entry = {}
+                        entry['name'] = item
+                        if os.path.normpath(os.path.relpath(dirname, os.getcwd())) == os.curdir:
+                            entry['path'] = item
+                        else:
+                            entry['path'] = os.path.join(os.path.relpath(dirname, os.getcwd()), item)
+                        entry['type'] = 'file' if os.path.isfile(item) else 'dir'
+                        paths.append(entry)
             except os.error:
                 self.route_404()
                 return
@@ -270,6 +274,8 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         """Check that the given path is inside or under os.getcwd()."""
         if not os.path.exists(os.path.realpath(path)):
             return False
+        elif self.is_blacklisted_path(path):
+            return False
         else:
             return self.is_in_directory(path, os.getcwd())
 
@@ -299,6 +305,11 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return False
         else:
             return True
+
+    def is_blacklisted_path(self, path):
+        """Is the given path in the BLACKLISTED_FILES collection?"""
+        # return (path in BLACKLISTED_FILES)
+        return (os.path.realpath(path) in [os.path.realpath(item) for item in BLACKLISTED_FILES])
 
 
 def exist_conf_file():

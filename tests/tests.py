@@ -84,7 +84,7 @@ class GlarkConnectorTest(unittest.TestCase):
         self.assertIsSuccessfulJsend(res.json())
 
         jsend = res.json()
-        jsend_ref = {"status": "success", "data": [{"path": "subdirectory with spaces", "type": "dir", "name": "subdirectory with spaces"}, {"path": "file1", "type": "file", "name": "file1"}, {"path": ".glarkconnector.conf", "type": "file", "name": ".glarkconnector.conf"}, {"path": "subdirectory", "type": "dir", "name": "subdirectory"}, {"path": "file2", "type": "file", "name": "file2"}]}
+        jsend_ref = {u"status": u"success", u"data": [{u"path": u"subdirectory", u"type": u"dir", u"name": u"subdirectory"}, {u"path": u"subdirectory with spaces", u"type": u"dir", u"name": u"subdirectory with spaces"}, {u"path": u"file1", u"type": u"file", u"name": u"file1"}, {u"path": u"file2", u"type": u"file", u"name": u"file2"}]}
 
         print 'jsend:'
         print jsend
