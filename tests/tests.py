@@ -93,7 +93,7 @@ class GlarkConnectorTest(unittest.TestCase):
         print jsend_ref
         print json.dumps(jsend_ref, sort_keys=True)
         print ''
-        self.assertTrue(json.dumps(jsend, sort_keys=True) == json.dumps(jsend_ref, sort_keys=True))
+        # self.assertTrue(json.dumps(jsend, sort_keys=True) == json.dumps(jsend_ref, sort_keys=True))
         self.assertTrue(jsend == jsend_ref)
 
     def test_list_dir(self):
