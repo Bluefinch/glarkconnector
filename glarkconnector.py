@@ -40,7 +40,7 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     server_version = "glarkconnector/" + __version__
     allow_origin = "http://glark.io"
-    # allow_origin = "*" # Allow any origin (not for production!)
+    allow_origin = "*" # Allow any origin (not for production!)
 
     def do_GET(self):
         """Serve a GET request."""
