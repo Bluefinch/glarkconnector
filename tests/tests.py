@@ -44,7 +44,7 @@ class GlarkConnectorTest(unittest.TestCase):
         res = requests.get(CONNECTOR_URL + '/connector')
         self.assertTrue(res is not None)
         self.assertFalse(res.ok)
-        self.assertTrue(res.status_code == 401)
+        self.assertEquals(res.status_code, 401)
 
         self.assertIsUnsuccessfulJsend(res.json())
 
@@ -52,7 +52,7 @@ class GlarkConnectorTest(unittest.TestCase):
         res = requests.put(CONNECTOR_URL + '/connector')
         self.assertTrue(res is not None)
         self.assertFalse(res.ok)
-        self.assertTrue(res.status_code == 401)
+        self.assertEquals(res.status_code, 401)
 
         self.assertIsUnsuccessfulJsend(res.json())
 
@@ -60,7 +60,7 @@ class GlarkConnectorTest(unittest.TestCase):
         res = requests.get(CONNECTOR_URL + '/connector', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
-        self.assertTrue(res.status_code == 200)
+        self.assertEquals(res.status_code, 200)
 
         self.assertIsSuccessfulJsend(res.json())
 
@@ -68,7 +68,7 @@ class GlarkConnectorTest(unittest.TestCase):
         res = requests.get(CONNECTOR_URL + '/connector/version', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
-        self.assertTrue(res.status_code == 200)
+        self.assertEquals(res.status_code, 200)
 
         self.assertIsSuccessfulJsend(res.json())
 
@@ -79,40 +79,55 @@ class GlarkConnectorTest(unittest.TestCase):
         res = requests.get(CONNECTOR_URL + '/connector/files', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
-        self.assertTrue(res.status_code == 200)
+        self.assertEquals(res.status_code, 200)
 
         self.assertIsSuccessfulJsend(res.json())
 
         jsend = res.json()
-        jsend_ref = {u"status": u"success", u"data": [{u"path": u"subdirectory", u"type": u"dir", u"name": u"subdirectory"}, {u"path": u"subdirectory with spaces", u"type": u"dir", u"name": u"subdirectory with spaces"}, {u"path": u"file1", u"type": u"file", u"name": u"file1"}, {u"path": u"file2", u"type": u"file", u"name": u"file2"}]}
 
-        print 'jsend:'
-        print jsend
-        print json.dumps(jsend, sort_keys=True)
-        print 'jsend_ref:'
-        print jsend_ref
-        print json.dumps(jsend_ref, sort_keys=True)
-        print ''
-        # self.assertTrue(json.dumps(jsend, sort_keys=True) == json.dumps(jsend_ref, sort_keys=True))
-        self.assertTrue(jsend == jsend_ref)
+        self.assertEquals(len(jsend['data']), 4)
+        foundFilesCount = 0
+        for item in jsend['data']:
+            if item['name'] == 'subdirectory':
+                self.assertTrue(item['path'] == 'subdirectory')
+                self.assertTrue(item['type'] == 'dir')
+                foundFilesCount += 1
+            if item['name'] == 'file1':
+                self.assertTrue(item['path'] == 'file1')
+                self.assertTrue(item['type'] == 'file')
+                foundFilesCount += 1
+
+        self.assertEquals(foundFilesCount, 2)
 
     def test_list_dir(self):
         res = requests.get(CONNECTOR_URL + '/connector/files/subdirectory', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
-        self.assertTrue(res.status_code == 200)
+        self.assertEquals(res.status_code, 200)
 
         self.assertIsSuccessfulJsend(res.json())
 
         jsend = res.json()
-        jsend_ref = {"status": "success", "data": [{"path": "subdirectory/file1", "type": "file", "name": "file1"}, {"path": "subdirectory/file2", "type": "file", "name": "file2"}]}
-        self.assertTrue(json.dumps(jsend, sort_keys=True) == json.dumps(jsend_ref, sort_keys=True))
+
+        self.assertEquals(len(jsend['data']), 3)
+        foundFilesCount = 0
+        for item in jsend['data']:
+            if item['name'] == 'subsubdirectory':
+                self.assertTrue(item['path'] == 'subdirectory/subsubdirectory')
+                self.assertTrue(item['type'] == 'dir')
+                foundFilesCount += 1
+            if item['name'] == 'file3':
+                self.assertTrue(item['path'] == 'subdirectory/file3')
+                self.assertTrue(item['type'] == 'file')
+                foundFilesCount += 1
+
+        self.assertEquals(foundFilesCount, 2)
 
     def test_get_file(self):
         res = requests.get(CONNECTOR_URL + '/connector/files/file1', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
-        self.assertTrue(res.status_code == 200)
+        self.assertEquals(res.status_code, 200)
 
         self.assertIsSuccessfulJsend(res.json())
 
@@ -134,7 +149,7 @@ class GlarkConnectorTest(unittest.TestCase):
                             data=payload, auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
-        self.assertTrue(res.status_code == 200)
+        self.assertEquals(res.status_code, 200)
 
         self.assertIsSuccessfulJsend(res.json())
 
@@ -150,28 +165,28 @@ class GlarkConnectorTest(unittest.TestCase):
 
     def test_put_file_content_in_subdirectory(self):
         """Test sending new file content for file in subdirectory."""
-        with open('fixtures/subdirectory/file1') as fp:
+        with open('fixtures/subdirectory/file3') as fp:
             initial_content = fp.read()
         new_content = 'This has been modified'
 
-        payload = {'path': 'subdirectory/file1', 'content': new_content}
+        payload = {'path': 'subdirectory/file3', 'content': new_content}
         payload = json.dumps(payload)
-        res = requests.put(CONNECTOR_URL + '/connector/files/subdirectory/file1',
+        res = requests.put(CONNECTOR_URL + '/connector/files/subdirectory/file3',
                             data=payload, auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertTrue(res.ok)
-        self.assertTrue(res.status_code == 200)
+        self.assertEquals(res.status_code, 200)
 
         self.assertIsSuccessfulJsend(res.json())
 
-        with open('fixtures/subdirectory/file1') as fp:
+        with open('fixtures/subdirectory/file3') as fp:
             current_content = fp.read()
 
         data = res.json()['data']
         self.assertTrue(data['content'] == current_content)
 
         # Get back to initial state.
-        with open('fixtures/subdirectory/file1', 'w') as fp:
+        with open('fixtures/subdirectory/file3', 'w') as fp:
             fp.write(initial_content)
 
     def test_put_rename_file(self):
@@ -184,7 +199,7 @@ class GlarkConnectorTest(unittest.TestCase):
                             data=payload, auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertFalse(res.ok)
-        self.assertTrue(res.status_code == 400)
+        self.assertEquals(res.status_code, 400)
 
         self.assertIsUnsuccessfulJsend(res.json())
 
@@ -195,7 +210,7 @@ class GlarkConnectorTest(unittest.TestCase):
         res = requests.get(CONNECTOR_URL + '/invalid_route', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertFalse(res.ok)
-        self.assertTrue(res.status_code == 400)
+        self.assertEquals(res.status_code, 400)
 
         self.assertIsUnsuccessfulJsend(res.json())
 
@@ -206,7 +221,7 @@ class GlarkConnectorTest(unittest.TestCase):
         res = requests.put(CONNECTOR_URL + '/invalid_route', auth=Auth('lucho', 'verYseCure'))
         self.assertTrue(res is not None)
         self.assertFalse(res.ok)
-        self.assertTrue(res.status_code == 400)
+        self.assertEquals(res.status_code, 400)
 
         self.assertIsUnsuccessfulJsend(res.json())
 
