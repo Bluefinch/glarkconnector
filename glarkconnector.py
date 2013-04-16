@@ -78,7 +78,8 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         """Serve a OPTIONS request."""
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", self.allow_origin)
-        self.send_header("Access-Control-Allow-Headers", "accept, origin, x-requested-with")
+        self.send_header("Access-Control-Allow-Methods", "GET, PUT")
+        self.send_header("Access-Control-Allow-Headers", "accept, origin, x-requested-with, authorization")
         self.end_headers()
 
     def do_HEAD(self):
