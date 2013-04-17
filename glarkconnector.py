@@ -66,10 +66,6 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if not self.is_authenticated():
             return
         
-        #if self.headers.getheader('content-type') != 'application/json;charset=UTF-8':
-        #    self.route_400('Content-Type header must be application/json')
-        #    return
-        
         if (self.path == '/connector/files'):
             self.route_404()
         elif (re.match(r'/connector/files/(.+)$', self.path)):
@@ -145,20 +141,13 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     body = json.loads(body)
 
                     # Check body consistency.
-                    if not 'path' in body:
-                        self.route_400("body must contain a 'path' field")
                     if not 'content' in body:
                         self.route_400("body must contain a 'content' field")
-
-                    # Check if the path matches the url.
-                    if body['path'] != requested_file:
-                        self.route_400("The path in request body must match the url path")
-                        return
 
                     fp.write(str(body['content']))
 
                 # If everything was fine, send back the new content of the file.
-                self.send_file_content(body['path'])
+                self.send_file_content(os.path.realpath(requested_file))
 
             except IOError:
                 self.route_404()
