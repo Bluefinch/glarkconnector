@@ -65,7 +65,11 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # Route request.
         if not self.is_authenticated():
             return
-
+        
+        if self.headers.getheader('content-type') != 'application/json;charset=UTF-8':
+            self.route_400('Content-Type header must be application/json')
+            return
+        
         if (self.path == '/connector/files'):
             self.route_404()
         elif (re.match(r'/connector/files/(.+)$', self.path)):
@@ -79,12 +83,13 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", self.allow_origin)
         self.send_header("Access-Control-Allow-Methods", "GET, PUT")
-        self.send_header("Access-Control-Allow-Headers", "accept, origin, x-requested-with, authorization")
+        self.send_header("Access-Control-Allow-Headers",
+                        "accept, origin, x-requested-with, authorization, content-type")
         self.end_headers()
 
     def do_HEAD(self):
         """Serve a HEAD request."""
-        raise NotImplemented
+        raise NotImplementedError
 
     # ----------
     # Routes:
