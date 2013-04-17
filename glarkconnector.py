@@ -66,9 +66,9 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if not self.is_authenticated():
             return
         
-        if self.headers.getheader('content-type') != 'application/json;charset=UTF-8':
-            self.route_400('Content-Type header must be application/json')
-            return
+        #if self.headers.getheader('content-type') != 'application/json;charset=UTF-8':
+        #    self.route_400('Content-Type header must be application/json')
+        #    return
         
         if (self.path == '/connector/files'):
             self.route_404()
