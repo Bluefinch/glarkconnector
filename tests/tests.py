@@ -143,7 +143,7 @@ class GlarkConnectorTest(unittest.TestCase):
             initial_content = fp.read()
         new_content = 'This has been modified'
 
-        payload = {'path': 'file1', 'content': new_content}
+        payload = {'content': new_content}
         payload = json.dumps(payload)
         res = requests.put(CONNECTOR_URL + '/connector/files/file1',
                             data=payload, auth=Auth('lucho', 'verYseCure'))
@@ -169,7 +169,7 @@ class GlarkConnectorTest(unittest.TestCase):
             initial_content = fp.read()
         new_content = 'This has been modified'
 
-        payload = {'path': 'subdirectory/file3', 'content': new_content}
+        payload = {'content': new_content}
         payload = json.dumps(payload)
         res = requests.put(CONNECTOR_URL + '/connector/files/subdirectory/file3',
                             data=payload, auth=Auth('lucho', 'verYseCure'))
@@ -188,23 +188,6 @@ class GlarkConnectorTest(unittest.TestCase):
         # Get back to initial state.
         with open('fixtures/subdirectory/file3', 'w') as fp:
             fp.write(initial_content)
-
-    def test_put_rename_file(self):
-        with open('fixtures/file1') as fp:
-            initial_content = fp.read()
-
-        payload = {'path': 'renamed_file', 'content': initial_content}
-        payload = json.dumps(payload)
-        res = requests.put(CONNECTOR_URL + '/connector/files/file1',
-                            data=payload, auth=Auth('lucho', 'verYseCure'))
-        self.assertTrue(res is not None)
-        self.assertFalse(res.ok)
-        self.assertEquals(res.status_code, 400)
-
-        self.assertIsUnsuccessfulJsend(res.json())
-
-        self.assertTrue(os.path.exists('fixtures/file1'))
-        self.assertFalse(os.path.exists('fixtures/renamed_file'))
 
     def test_get_bad_request(self):
         res = requests.get(CONNECTOR_URL + '/invalid_route', auth=Auth('lucho', 'verYseCure'))
