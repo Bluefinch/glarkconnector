@@ -123,16 +123,16 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.send_listdir(requested_path)
 
     def route_put_file(self, requested_file):
-        if not self.is_authorized_path(requested_file):
+        if not self.is_authorized_path(os.path.dirname(requested_file)):
             self.route_403()
             return
         else:
-            if not os.path.isfile(os.path.realpath(requested_file)):
+            if os.path.isdir(os.path.realpath(requested_file)):
                 self.route_400("The requested file is a directory")
                 return
 
             try:
-                with open(os.path.realpath(requested_file), 'w') as fp:
+                with open(os.path.realpath(requested_file), 'w+') as fp:
                     # Read request body.
                     content_len = int(self.headers.getheader('content-length'))
                     body = self.rfile.read(content_len)
