@@ -363,7 +363,10 @@ def main():
         with open(CONFIGURATION_FILENAME, 'w') as fp:
             json.dump(CONFIG, fp)
 
-    startConnector(port)
+    try:
+        startConnector(port)
+    except KeyboardInterrupt:
+        print("Shutting down glark connector.")
 
 
 if __name__ == '__main__':
