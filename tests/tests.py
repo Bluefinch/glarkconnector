@@ -5,10 +5,11 @@ To run the tets, a glarkconnector must be running at CONNECTOR_URL, serving the
 directory 'fixtures'."""
 
 
+from requests.auth import HTTPBasicAuth as Auth
 import json
 import os
 import requests
-from requests.auth import HTTPBasicAuth as Auth
+import shutil
 import unittest
 
 
@@ -23,6 +24,10 @@ class GlarkConnectorTest(unittest.TestCase):
             os.remove('fixtures/renamed_file')
         with open('fixtures/file1', 'w') as fp:
             fp.write('This is fixtures/file1')
+        if os.path.exists('fixtures/new_file'):
+            os.remove('fixtures/new_file')
+        if os.path.exists('fixtures/subdirectory/new_subdirectory'):
+            shutil.rmtree('fixtures/subdirectory/new_subdirectory')
 
     def assertIsJsend(self, json):
         """Assert that the given json responds to the jsend format."""
@@ -188,6 +193,69 @@ class GlarkConnectorTest(unittest.TestCase):
         # Get back to initial state.
         with open('fixtures/subdirectory/file3', 'w') as fp:
             fp.write(initial_content)
+
+    def test_post_new_file(self):
+        """Test creating a new file."""
+        payload = {'content': 'new file at fixtures/new_file'}
+        payload = json.dumps(payload)
+        res = requests.post(CONNECTOR_URL + '/connector/files/new_file',
+                            data=payload, auth=Auth('lucho', 'verYseCure'))
+        self.assertTrue(res is not None)
+        self.assertTrue(res.ok)
+        self.assertEquals(res.status_code, 200)
+
+        self.assertIsSuccessfulJsend(res.json())
+
+        with open('fixtures/new_file') as fp:
+            current_content = fp.read()
+
+        data = res.json()['data']
+        self.assertTrue(data['content'] == current_content)
+
+        # Get back to initial state.
+        os.remove('fixtures/new_file')
+
+    def test_post_new_file_while_existing(self):
+        """Test trying to create a file that already exists."""
+        with open('fixtures/new_file', 'w') as fp:
+            fp.write('touched')
+
+        payload = {'content': 'new file at fixtures/new_file'}
+        payload = json.dumps(payload)
+        res = requests.post(CONNECTOR_URL + '/connector/files/new_file',
+                            data=payload, auth=Auth('lucho', 'verYseCure'))
+        self.assertTrue(res is not None)
+        self.assertFalse(res.ok)
+        self.assertEquals(res.status_code, 400)
+
+        self.assertIsUnsuccessfulJsend(res.json())
+
+        data = res.json()['data']
+        self.assertTrue(data == "Bad request: File 'new_file' already exists")
+
+        # Get back to initial state.
+        os.remove('fixtures/new_file')
+
+    def test_post_new_file_in_subdirectory(self):
+        """Test creating a new file in a non existing subdirectory."""
+        payload = {'content': 'new file at fixtures/subdirectory/new_subdirectory/new_subsubdirectory/new_file'}
+        payload = json.dumps(payload)
+        res = requests.post(CONNECTOR_URL + '/connector/files/subdirectory/new_subdirectory/new_subsubdirectory/new_file',
+                            data=payload, auth=Auth('lucho', 'verYseCure'))
+        self.assertTrue(res is not None)
+        self.assertTrue(res.ok)
+        self.assertEquals(res.status_code, 200)
+
+        self.assertIsSuccessfulJsend(res.json())
+
+        with open('fixtures/subdirectory/new_subdirectory/new_subsubdirectory/new_file') as fp:
+            current_content = fp.read()
+
+        data = res.json()['data']
+        self.assertTrue(data['content'] == current_content)
+
+        # Get back to initial state.
+        shutil.rmtree('fixtures/subdirectory/new_subdirectory')
 
     def test_get_bad_request(self):
         res = requests.get(CONNECTOR_URL + '/invalid_route', auth=Auth('lucho', 'verYseCure'))

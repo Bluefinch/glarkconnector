@@ -65,12 +65,26 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # Route request.
         if not self.is_authenticated():
             return
-        
+
         if (self.path == '/connector/files'):
             self.route_404()
         elif (re.match(r'/connector/files/(.+)$', self.path)):
             requested_file = re.match(r'/connector/files/(.+)$', self.path).group(1)
             self.route_put_file(requested_file)
+        else:
+            self.route_400()
+
+    def do_POST(self):
+        """Serve a POST request."""
+        # Route request.
+        if not self.is_authenticated():
+            return
+
+        if (self.path == '/connector/files'):
+            self.route_404()
+        elif (re.match(r'/connector/files/(.+)$', self.path)):
+            new_file = re.match(r'/connector/files/(.+)$', self.path).group(1)
+            self.route_post_file(new_file)
         else:
             self.route_400()
 
@@ -123,16 +137,16 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.send_listdir(requested_path)
 
     def route_put_file(self, requested_file):
-        if not self.is_authorized_path(os.path.dirname(requested_file)):
+        if not self.is_authorized_path(requested_file):
             self.route_403()
             return
         else:
-            if os.path.isdir(os.path.realpath(requested_file)):
+            if not os.path.isfile(os.path.realpath(requested_file)):
                 self.route_400("The requested file is a directory")
                 return
 
             try:
-                with open(os.path.realpath(requested_file), 'w+') as fp:
+                with open(os.path.realpath(requested_file), 'w') as fp:
                     # Read request body.
                     content_len = int(self.headers.getheader('content-length'))
                     body = self.rfile.read(content_len)
@@ -153,6 +167,48 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.route_404()
                 return
             except KeyError:
+                self.route_400()
+                return
+
+    def route_post_file(self, new_file):
+        if not self.is_authorized_new_path(new_file):
+            self.route_403()
+            return
+        elif os.path.exists(os.path.realpath(new_file)):
+            self.route_400("File '" + new_file + "' already exists")
+            return
+        else:
+            try:
+                # Make the potentially missing intermediate directories.
+                if not os.path.exists(os.path.dirname(os.path.realpath(new_file))):
+                    os.makedirs(os.path.dirname(os.path.realpath(new_file)))
+
+                with open(os.path.realpath(new_file), 'w+') as fp:
+                    # Read request body.
+                    content_len = int(self.headers.getheader('content-length'))
+                    body = self.rfile.read(content_len)
+
+                    body = json.loads(body)
+
+                    # Check body consistency.
+                    if not 'content' in body:
+                        self.route_400("body must contain a 'content' field")
+
+                    fp.write(str(body['content']))
+
+                # If everything was fine, send back the new content of the file.
+                self.send_file_content(os.path.realpath(new_file))
+
+            except IOError:
+                self.route_404()
+                return
+            except KeyError:
+                self.route_400()
+                return
+            except os.Error:
+                self.route_400()
+                return
+            except OSError:
                 self.route_400()
                 return
 
@@ -266,10 +322,15 @@ class ConnectorRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_jsend(entry)
 
     def is_authorized_path(self, path):
-        """Check that the given path is inside or under os.getcwd()."""
+        """Check that the given path exists and is inside or under os.getcwd()."""
         if not os.path.exists(os.path.realpath(path)):
             return False
-        elif self.is_blacklisted_path(path):
+        else:
+            return self.is_authorized_new_path(path)
+
+    def is_authorized_new_path(self, path):
+        """Check that the given path is inside or under os.getcwd()."""
+        if self.is_blacklisted_path(path):
             return False
         else:
             return self.is_in_directory(path, os.getcwd())
