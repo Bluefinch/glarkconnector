@@ -366,7 +366,7 @@ def main():
     try:
         startConnector(port)
     except KeyboardInterrupt:
-        print("Shutting down glark connector.")
+        print("\nShutting down glark connector.")
 
 
 if __name__ == '__main__':
